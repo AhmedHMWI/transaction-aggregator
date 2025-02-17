@@ -14,27 +14,18 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchData = () => {
+  const fetchData = (applyFilters = false) => {
     setLoading(true);
     setError("");
 
-    if (!customerId && !itemId && (!startDate || !endDate)) {
-      setError("Please enter at least one filter.");
-      setLoading(false);
-      return;
-    }
-
-    const formatDate = (dateString) => {
-      if (!dateString) return null;
-      const date = new Date(dateString);
-      return date.toISOString().split("T")[0]; // --> Converts any date format to YYYY-MM-DD
-    };
-
     const filters = {};
-    if (customerId !== "") filters.customer_id = parseInt(customerId, 10);
-    if (itemId !== "") filters.item_id = parseInt(itemId, 10);
-    if (startDate && endDate) {
-      filters.date_range = { start: formatDate(startDate), end: formatDate(endDate) };
+
+    if (applyFilters) {
+      if (customerId) filters.customer_id = parseInt(customerId, 10);
+      if (itemId) filters.item_id = parseInt(itemId, 10);
+      if (startDate && endDate) {
+        filters.date_range = { start: startDate, end: endDate };
+      }
     }
 
     console.log("Filters being sent to API:", JSON.stringify(filters, null, 2));
@@ -42,7 +33,7 @@ const App = () => {
     fetch("http://127.0.0.1:5000/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ group_by: groupBy, filters: filters }),
+      body: JSON.stringify({ group_by: groupBy, filters }),
     })
       .then((response) => {
         if (!response.ok) throw new Error("Failed to fetch transactions");
@@ -61,7 +52,7 @@ const App = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(false); // --> Load all data initially (without filters)
   }, [groupBy]);
 
   return (
@@ -70,7 +61,7 @@ const App = () => {
         Welcome to UR-Store Assessment
       </h1>
 
-      {/* --> Import TransactionsFilterForm Component */}
+      {/* --> Filters Form */}
       <TransactionsFilterForm
         groupBy={groupBy}
         setGroupBy={setGroupBy}
@@ -82,7 +73,7 @@ const App = () => {
         setStartDate={setStartDate}
         endDate={endDate}
         setEndDate={setEndDate}
-        handleSearch={fetchData}
+        handleSearch={() => fetchData(true)} // --> Apply filters when searching
       />
 
       {loading && (
